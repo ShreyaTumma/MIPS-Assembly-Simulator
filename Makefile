@@ -1,3 +1,4 @@
 lab4:
-	javac lab3.java
+	javac lab4.java
 	javac MIPSfuncs.java
+	javac TwoPassAsm.java

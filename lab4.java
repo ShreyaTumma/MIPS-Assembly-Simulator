@@ -1,13 +1,13 @@
 //Name: Gabriel Barney and Shreya Tumma
 //Section: CPE 315-03
-//Description: Two Pass Assembler, MIPS emulator
+//Description: Two Pass Assembler, MIPS simulator
 
 import java.io.*;
 import java.util.*;
 
-class lab3 {
+class lab4 {
     
-    // starting address: 0x00400000, but for this assignment start at zero
+    // starting address in MIPS: 0x00400000, but for this assignment start at zero
     static Map<String, String> opCodes = new HashMap<String, String>() {{
         put("and", "000000");
         put("add", "000000"); 
@@ -31,7 +31,6 @@ class lab3 {
         put("or", "00000 100101");
         put("addi", "immediate");
         put("sll", "sa000000"); 
-        //put("sll", "sa");
         put("sub", "00000 100010");
         put("slt", "00000 101010");
         put("beq", "offset");
@@ -75,6 +74,7 @@ class lab3 {
     }};
 
     static int PC = 0;
+    
     public static void main(String args[]) {
     
         Map<String, String> labels = new HashMap<String, String>();
@@ -82,6 +82,8 @@ class lab3 {
         int [] data_mem = new int [8192];
         int [] reg_file = new int [32];
         MIPSfuncs funcs = new MIPSfuncs();
+        TwoPassAsm twoPass =  new TwoPassAsm();
+
 
         try {
             File file = new File(args[0]);
@@ -93,14 +95,17 @@ class lab3 {
             ArrayList< ArrayList<String>> instructions = new ArrayList<ArrayList<String> >();
 
             while ((line = bread.readLine()) != null) {
-                hexAddress = getLabelAddresses(line, hexAddress, labels, instructions);
+                hexAddress = twoPass.getLabelAddresses(line, hexAddress, labels, opCodes, instructions);
                 buff.append(line);
                 buff.append('\n'); 
             }
             fread.close();
 
-            mCodes = makeMachineCode(labels, instructions, mCodes);
-        
+            mCodes = twoPass.makeMachineCode(labels, functionCodes, opCodes, regCodes, instructions, mCodes);
+            for(int i = 0; i < mCodes.size(); i++){
+                System.out.print(mCodes.get(i) + "\n");
+            }
+            /*
             if (args.length > 1) {
                 // script
                 File script = new File(args[1]);
@@ -124,7 +129,7 @@ class lab3 {
                         PC = 0;
                     }
                 }
-            }
+            }*/
 
             
             } catch(IOException e) { 
@@ -243,189 +248,8 @@ class lab3 {
         }
         return 0;
 }
-    // method for first pass
-    public static int getLabelAddresses(String line, int hexAddress, 
-        Map<String, String> labels, ArrayList<ArrayList <String>> instructions) {
-        
-        int commentFlag = 0; 
-        String[] splitLine = line.split("\\s+|,|\\$");
-        ArrayList<String> instr = new ArrayList<String>();
-
-        // Check for empty lines and comments
-        if (splitLine != null || splitLine[0].contains("#") == false) {
-            for(int i = 0; i < splitLine.length; i++){
-                if (commentFlag == 1) { 
-                    break;
-                }
-                // check for comments in same line as instruction                       
-                if(splitLine[i].contains("#") == true) {
-                    if (splitLine[i].indexOf("#") > 0) {
-                        splitLine[i] = splitLine[i].substring(0, splitLine[i].indexOf("#"));
-                        commentFlag = 1;
-                    } else { 
-                        break;
-                    }
-                }
-                if(splitLine[i].length() > 0 ){
-                    if (opCodes.containsKey(splitLine[i]) == true) {
-                        hexAddress += 1; //add hex address as a value to key (?)
-                    }
-                    // check for labels and store address
-                    int indexCol = splitLine[i].indexOf(":");
-                    if(indexCol > -1){
-                        labels.put(splitLine[i].substring(0,indexCol), Integer.toString(hexAddress + 1));
-                        if(indexCol != splitLine[i].length() - 1){
-                            hexAddress += 1;
-                            instr.add(splitLine[i].substring(indexCol +1));
-                        }
-                        continue;
-                    } 
-                    instr.add(splitLine[i]);
-                }
-            }
-            if(instr.isEmpty() == false){
-                instructions.add(instr);
-            }  
-        }
-        return hexAddress;
-    }
-
-    // method used for second pass
-    public static ArrayList<String> makeMachineCode(Map<String, String> labels, 
-        ArrayList<ArrayList <String>> instructions, ArrayList<String> mCodes) {
-        
-        // i is the address of the current instruction
-        for(int i = 0; i < instructions.size(); i++){
-            String mCode = "";
-            ArrayList<String> line = instructions.get(i);
-            String current_inst = line.get(0);
-            
-            switch (line.size()) {
-                case 4:
-                    if(opCodes.containsKey(current_inst) == true){
-                        if(functionCodes.get(current_inst) == "immediate" || functionCodes.get(current_inst) == "offset" ) {
-                            mCode += iType(line, current_inst, labels, i);
-                        } else if(functionCodes.get(current_inst).contains("sa") == true) {
-                            mCode += shift(line, current_inst);
-                        } else {
-                            mCode += rType(line, current_inst);
-                        }
-                    }
-                    else {
-                        System.out.println("invalid instruction: " + current_inst);
-                        System.out.println("Exiting program...");
-                        System.exit(0);
-                        mCode += "invalid instruction: " + current_inst;
-                        mCodes.add(mCode);
-                        return mCodes;
-                    }
-                    break;
-                case 2:
-                    String destination = line.get(1);
-                    if (current_inst.equals("j") || current_inst.equals("jal")) {   // think about storing pc with jal
-                        String binary = Integer.toString(Integer.parseInt(labels.get(destination)), 2);
-                        String leadZeroes = String.format("%26s", binary).replace(' ', '0');
-                        mCode += opCodes.get(current_inst) + " " + leadZeroes;
-                        break;
-                    } else if (current_inst.equals("jr")) {
-                        mCode += (opCodes.get(current_inst) + " " + 
-                                    regCodes.get(destination) + " " +
-                                    "000000000000000" + " " +
-                                    functionCodes.get(current_inst));
-                        break;        
-                    } else {
-                        System.out.println("invalid instruction: " + current_inst);
-                        System.out.println("Exiting program...");
-                        System.exit(0);
-                        mCode += "invalid instruction: " + current_inst;
-                        mCodes.add(mCode);
-                        return mCodes;
-                    }
-                default:
-                    System.out.println("invalid instruction: " + current_inst);
-                    System.out.println("Exiting program...");
-                    System.exit(0);
-                    System.out.println("Instruction Error.");
-                }    
-                mCodes.add(mCode);  
-            }
-            return mCodes;
-        }
-
-        public static String rType(ArrayList<String> line, String current_inst){
-            //ex: add rd, rs, rt           
-            String rd = regCodes.get(line.get(1));
-            String rs = regCodes.get(line.get(2));
-            String rt = regCodes.get(line.get(3));
-            String opcode = opCodes.get(current_inst);
-            String fCode = functionCodes.get(current_inst);
-
-            return opcode + " " + rs + " " + rt + " " + rd + " " + fCode;
-        }
-
-        public static String shift(ArrayList<String> line, String current_inst){
-            //ex: add rd, rs, rt    
-            String rd = regCodes.get(line.get(1));
-            String rs = "00000";
-            String rt = regCodes.get(line.get(2));
-            String opcode = opCodes.get(current_inst);
-            String fCode = "000000";
-            String binary = Integer.toBinaryString(Integer.parseInt(line.get(3)));
-            String shamt = String.format("%5s",binary ).replace(' ', '0');
-
-            return opcode + " " + rs + " " + rt + " " + rd + " " + shamt + " "+ fCode;
-        }
-
-        public static String iType(ArrayList<String> line, String current_inst, Map<String, String> labels, int i){
-            String rt = regCodes.get(line.get(1));
-            String rs = regCodes.get(line.get(2));
-            if(functionCodes.get(current_inst).equals("offset") == true){
-                
-                rs = regCodes.get(line.get(1));
-                rt = regCodes.get(line.get(2));
-            }
-            String opcode = opCodes.get(current_inst);
-            String offset = line.get(3);
-            int newOff = 0;
-                      
-            //check to see if label exists 
-            if(labels.containsKey(line.get(3)) == true) {
-                newOff = Integer.parseInt(labels.get(offset)) - (i+1);
-            } else if(offset.contains(")") == true){
-                /*rt = regCodes.get(line.get(1));
-                rs = regCodes.get(line.get(3).substring(0,(line.get(3).length())-1));*/
-
-                rt = regCodes.get(line.get(1));
-                rs = regCodes.get(line.get(3).substring(0,(line.get(3).length())-1));
-
-                offset = line.get(2).substring(0, line.get(2).length()-1);
-                newOff = Integer.parseInt(offset);
-            } else if (current_inst.equals("bne")|| current_inst == "bne") {
-                rs = regCodes.get(line.get(1));
-                rt = regCodes.get(line.get(2));
-            }
-            else {
-                newOff = Integer.parseInt(offset);
-            }
-            //check if offset is negative
-            if(newOff < 0){
-                offset = Integer.toString(twosCompliment(newOff));
-            } else{
-                offset = Integer.toString(newOff);
-            }
-                
-            String binary = Integer.toBinaryString(Integer.parseInt(offset));
-            String im = String.format("%16s", binary).replace(' ', '0');
-
-            return opcode + " " + rs + " " + rt + " " + im ;
-        }
-
-        public static int twosCompliment(int offset){
-            offset = offset * -1 ;
-            int newOffset = (int)(Math.pow(2, 16)) - offset;
-            return newOffset;
-        }
-
+    
+    
         public static void parseMCode(ArrayList<String> mCodes, int [] reg_file, int [] data_mem, MIPSfuncs funcs){
             
             int ret = 0;  
