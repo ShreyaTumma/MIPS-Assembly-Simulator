@@ -101,7 +101,7 @@ class lab4 {
             }
             fread.close();
 
-            mCodes = twoPass.makeMachineCode(labels, functionCodes, opCodes, regCodes, instructions, mCodes);
+            mCodes = twoPass.makeMachineCode(labels, opCodes,  functionCodes, regCodes, instructions, mCodes);
             for(int i = 0; i < mCodes.size(); i++){
                 System.out.print(mCodes.get(i) + "\n");
             }
