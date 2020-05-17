@@ -74,6 +74,8 @@ class lab4 {
     }};
 
     static int PC = 0;
+    static int CYCLES = 0;
+    static String[] PIPELINE = {"empty", "empty", "empty", "empty"};
     
     public static void main(String args[]) {
     
