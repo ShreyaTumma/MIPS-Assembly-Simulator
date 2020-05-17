@@ -85,6 +85,7 @@ class lab4 {
         int [] reg_file = new int [32];
         MIPSfuncs funcs = new MIPSfuncs();
         TwoPassAsm twoPass =  new TwoPassAsm();
+        CPUfuncs cfuncs = new CPUfuncs();
 
 
         try {
@@ -144,19 +145,20 @@ class lab4 {
         String[] splitLine;            
         splitLine = cmd.split(" ");
         int i = 0;
+        CPUfuncs cfuncs = new CPUfuncs();
             
         switch(splitLine[0]) {
             case("h"):
-                h();
+                cfuncs.h();
                 break;
             case("d"):
-                d(reg_file);
+                cfuncs.d(reg_file, PC);
                 break;
             case("m"):
-                m(data_mem, Integer.parseInt(splitLine[1]), Integer.parseInt(splitLine[2]));
+                cfuncs.m(data_mem, Integer.parseInt(splitLine[1]), Integer.parseInt(splitLine[2]));
                 break;
             case("c"):
-                c();
+                cfuncs.c();
                 return -2;
             case("r"):
                 i = PC;
@@ -172,11 +174,11 @@ class lab4 {
                         parseMCode(mCodes, reg_file, data_mem, funcs);
                         i--;
                     }
-                    s(Integer.parseInt(splitLine[1]));
+                    cfuncs.s(Integer.parseInt(splitLine[1]));
                     break;
                 } else {
                     parseMCode(mCodes, reg_file, data_mem, funcs);
-                    s(1);
+                    cfuncs.s(1);
                     break;
                 }
             default:
@@ -189,6 +191,7 @@ class lab4 {
         String line;
         String[] splitLine;  
         int i = 0; 
+        CPUfuncs cfuncs = new CPUfuncs();
         try {     
         while ((line = sbread.readLine()) != null) {
             splitLine = line.split(" ");
@@ -206,19 +209,19 @@ class lab4 {
     
             switch(splitLine[0]) {
                 case("h"):
-                    h(); 
+                    cfuncs.h(); 
                     break;
                 case("d"):
-                    d(reg_file);
+                    cfuncs.d(reg_file, PC);
                     break;
                 case("m"):
-                    m(data_mem, Integer.parseInt(splitLine[1]), Integer.parseInt(splitLine[2]));
+                    cfuncs.m(data_mem, Integer.parseInt(splitLine[1]), Integer.parseInt(splitLine[2]));
                     break;
                 case("c"):
                     PC = 0;
                     Arrays.fill(data_mem, 0);
                     Arrays.fill(reg_file, 0);
-                    c();
+                    cfuncs.c();
                     break;
                 case("r"):
                     i = PC;
@@ -234,10 +237,10 @@ class lab4 {
                             parseMCode(mCodes, reg_file, data_mem, funcs);
                             i--;
                         }
-                        s(Integer.parseInt(splitLine[1]));
+                        cfuncs.s(Integer.parseInt(splitLine[1]));
                     } else {
                         parseMCode(mCodes, reg_file, data_mem, funcs);
-                        s(1);
+                        cfuncs.s(1);
                     }
                     break;
                 default:
@@ -401,7 +404,7 @@ class lab4 {
             return ((decimal + 1) * (-1));
         }
 
-
+/*
         public static void h() {
             System.out.println("\nh = show help");
             System.out.println("d = dump register state");
@@ -462,5 +465,5 @@ class lab4 {
             System.out.println("\t" + steps + " instruction(s) executed");
         } 
 
-
+*/
 }  
