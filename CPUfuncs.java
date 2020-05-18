@@ -7,9 +7,10 @@ public class CPUfuncs {
         public static void h() {
             System.out.println("\nh = show help");
             System.out.println("d = dump register state");
-            System.out.println("s = single step through the program (i.e. execute 1 instruction and stop)");
-            System.out.println("s num = step through num instructions of the program");
-            System.out.println("r = run until the program ends");
+            System.out.println("p = show pipeline registers");
+            System.out.println("s = step through a single clock cycle step (i.e. simulate 1 cycle and stop)");
+            System.out.println("s num = step through num clock cycles");
+            System.out.println("r = run until the program ends and display timing summary");
             System.out.println("m num1 num2 = display data memory from location num1 to num2");
             System.out.println("c = clear all registers, memory, and the program counter to 0");
             System.out.println("q = exit the program\n");
@@ -44,7 +45,15 @@ public class CPUfuncs {
             System.out.println("$t9 = " + reg_file[25] + "\t\t" +
                                "$sp = " + reg_file[29] + "\t\t" +
                                 "$ra = " + reg_file[31] + "\t\t\n");
-        }        
+        }     
+
+        public static void p(String[] PIPELINE, int PC) {
+            System.out.println("\npc\tif/id\tid/exe\texe/mem\tmem/wb");
+            System.out.print(PC + "\t");
+            System.out.print(PIPELINE[0] + '\t');
+            System.out.print(PIPELINE[1] + '\t' + PIPELINE[2] + '\t');
+            System.out.println(PIPELINE[3] + '\n');
+        }   
     
         public static void m(int[] data_mem, int idx1, int idx2) {
             System.out.print("\n");
@@ -62,6 +71,10 @@ public class CPUfuncs {
 
 
         public static void s(int steps) { 
-            System.out.println("\t" + steps + " instruction(s) executed");
-        } 
+            //System.out.println("\t" + steps + " instruction(s) executed");
+        }
+    
+        
+
+ 
 }
