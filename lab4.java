@@ -25,6 +25,7 @@ class lab4 {
         put("jal", "000011"); 
     }};
 
+
     static Map<String, String> functionCodes = new HashMap<String, String>() {{
         put("and", "00000 100100");
         put("add", "00000 100000");
@@ -77,6 +78,9 @@ class lab4 {
     static int CYCLES = 0;
     static String[] PIPELINE = {"empty", "empty", "empty", "empty"};
     static ArrayList<ArrayList<String>> PIPELINE_REGS = new ArrayList<ArrayList<String>>();
+    // PIPELINE_REGS.get(i).get(0) == PC
+    // PIPELINE_REGS.get(i).get(1) == RS
+    // PIPELINE_REGS.get(i).get(2) == RT
     
     public static void main(String args[]) {
     
@@ -145,6 +149,7 @@ class lab4 {
                     }
                 }
             }
+            System.out.println("Cycles: " + CYCLES);
 
             
             } catch(IOException e) { 
@@ -181,6 +186,11 @@ class lab4 {
                     parseMCode(mCodes, reg_file, data_mem, funcs);
                     i = PC;
                 }
+                float CPI = ((float)CYCLES / PC);
+                System.out.println("\nProgram complete");
+                System.out.print("CPI = " + String.format("%2.03f", CPI));
+                System.out.print("\tCycles = " + CYCLES);
+                System.out.println("\tInstructions = " + PC + '\n');
                 return i;
             case("s"):
                 if (splitLine.length > 1) {
@@ -247,6 +257,12 @@ class lab4 {
                         parseMCode(mCodes, reg_file, data_mem, funcs);
                         i = PC;
                     }
+                    System.out.println("\nProgram complete");
+                    System.out.print("CPI = " + (CYCLES/PC));
+                    System.out.print("\tCycles = " + CYCLES);
+                    System.out.println("\tInstructions = " + PC + '\n'); // prints when all lines of file execute
+                    // BUG: For some reason only gets 40 cycles instead of 42 when running against first test case
+
                     break;
                 case("s"):
                     if (splitLine.length > 1) { // probably have to work with pc value returned 
@@ -275,10 +291,29 @@ class lab4 {
     
         public static void parseMCode(ArrayList<String> mCodes, int [] reg_file, int [] data_mem, MIPSfuncs funcs){
             
+            // The check from our notes translated to code
+            
             int ret = 0;  
+            String stall = "stall";
+            System.out.println("Cycles: " + CYCLES + '\n' + PIPELINE_REGS);
+            
+            if ((PIPELINE[1].equals("lw")) && ((PIPELINE_REGS.get(CYCLES - 1).get(2).equals(PIPELINE_REGS.get(CYCLES).get(1))) ||
+                                            (PIPELINE_REGS.get(CYCLES - 1).get(2).equals(PIPELINE_REGS.get(CYCLES).get(2))))) {
+                PIPELINE[3] = PIPELINE[2]; // moving everything in pipeline to the right
+                PIPELINE[2] = PIPELINE[1]; 
+                PIPELINE[1] = stall;  // puts a stall in the pipeline
+                PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList("Null", "Null", "Null"))); // null values for "stall" cycle
+ //               CYCLES++;
+                    
+            }
+             
             //handle error statements
-            if(mCodes.get(PC).contains(":") == false){
+            else if(mCodes.get(PC).contains(":") == false){
                 String[] splitLine = mCodes.get(PC).split(" ");
+                
+                PIPELINE[3] = PIPELINE[2]; // Moves everything in pipeline to the right
+                PIPELINE[2] = PIPELINE[1];
+                PIPELINE[1] = PIPELINE[0];
                 
                 if(splitLine[0].equals("000000")){
                     ret = rTypeFuncs(splitLine, funcs, reg_file);
@@ -287,8 +322,17 @@ class lab4 {
                 } else if(splitLine.length == 2){
                     ret = jTypeFuncs(splitLine, funcs, reg_file);
                 }
-            }        
-            PC = PC + ret;
+
+         /*       for (int i = 0; i < RevOpCodes.size() ; i++) {
+                    if (RevOpCodes.get(i).equals(splitLine[0])) {
+                        PIPELINE[0] = "hello";
+                    }
+                }*/
+//                PIPELINE[0] = RevOpCodes.get(splitLine[0]);
+            
+                PC = PC + ret;
+            } 
+            CYCLES++; // Cycle added regardless of what pc is doing      
         }
 
         private static int jTypeFuncs(String [] splitline, MIPSfuncs funcs, int [] reg_file) {
@@ -304,8 +348,12 @@ class lab4 {
             }
             switch(opCode){
                 case "000010":
+                    PIPELINE[0] = "j"; // adding command to pipeline
+                    PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), "Null", "Null"))); // statements like this for every block in each TypeFuncs method
                     return funcs.j(imm, PC);
                 case "000011":
+                    PIPELINE[0] = "jal";
+                    PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), "Null", "Null")));
                     return funcs.jal(reg_file,imm, PC);
                 default:
                     System.out.println("Error in jTypeFuncs"+ Arrays.toString(splitline));
@@ -332,20 +380,30 @@ class lab4 {
             switch(opCode){
                 
                 case "001000":
+                    PIPELINE[0] = "addi";
+                    PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                     funcs.addi(reg_file, rs, rt, imm);
                     break;
                 case "000100":
+                    PIPELINE[0] = "beq";
+                    PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                     return funcs.beq(reg_file, rs, rt, imm, PC);
                     
                     //break;
                 case "000101":
+                    PIPELINE[0] = "bne";
+                    PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                     return funcs.bne(reg_file, rs, rt, imm, PC);
                     
                     //break;
                 case "100011":
+                    PIPELINE[0] = "lw";
+                    PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                     funcs.lw(reg_file, data_mem, rs, rt, imm);
                     break;
                 case "101011":
+                    PIPELINE[0] = "sw";
+                    PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                     funcs.sw(reg_file, data_mem, rs, rt, imm);
                     break;
                 
@@ -375,21 +433,33 @@ class lab4 {
                 
                 switch(funcCode){
                     case "100100":
+                        PIPELINE[0] = "and";
+                        PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                         funcs.and(reg_file, rs, rt, rd);
                         break;
                     case "100000":
+                        PIPELINE[0] = "add";
+                        PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                         funcs.add(reg_file, rs, rt, rd);
                         break;
                     case "100101":
+                        PIPELINE[0] = "or";
+                        PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                         funcs.or(reg_file, rs, rt, rd);
                         break;
                     case "100010":
+                        PIPELINE[0] = "sub";
+                        PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                         funcs.sub(reg_file, rs, rt, rd);
                         break;
                     case "101010":
+                        PIPELINE[0] = "slt";
+                        PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                         funcs.slt(reg_file, rs, rt, rd);
                         break;
                     case "000000":
+                        PIPELINE[0] = "sll";
+                        PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                         int shamt = Integer.parseInt(splitline[4], 2);
                         funcs.sll(reg_file,rt, rd, shamt);
                         break;
