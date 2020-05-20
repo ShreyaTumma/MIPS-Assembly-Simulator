@@ -1,13 +1,12 @@
 //Name: Gabriel Barney and Shreya Tumma
 //Section: CPE 315-03
-//Description: Two Pass Assembler, MIPS simulator
+//Description: MIPS simulator
 
 import java.io.*;
 import java.util.*;
 
 class lab4 {
-    
-    // starting address in MIPS: 0x00400000, but for this assignment start at zero
+    /* starting address in MIPS: 0x00400000, but for this assignment start at zero */
     static Map<String, String> opCodes = new HashMap<String, String>() {{
         put("and", "000000");
         put("add", "000000"); 
@@ -24,7 +23,6 @@ class lab4 {
         put("j", "000010");
         put("jal", "000011"); 
     }};
-
 
     static Map<String, String> functionCodes = new HashMap<String, String>() {{
         put("and", "00000 100100");
@@ -83,8 +81,7 @@ class lab4 {
     // PIPELINE_REGS.get(i).get(2) == RT
     
     public static void main(String args[]) {
-        
-    
+
         Map<String, String> labels = new HashMap<String, String>();
         ArrayList<String> mCodes = new ArrayList<String>();
         int [] data_mem = new int [8192];
@@ -111,7 +108,7 @@ class lab4 {
             fread.close();
 
             mCodes = twoPass.makeMachineCode(labels, opCodes,  functionCodes, regCodes, instructions, mCodes);
-    /*        for(int i = 0; i < mCodes.size(); i++){
+            /*for(int i = 0; i < mCodes.size(); i++){
                 System.out.print(mCodes.get(i) + "\n");
             }
 
@@ -123,6 +120,7 @@ class lab4 {
                 System.out.println(PIPELINE[i]);
             }*/
             
+            
             PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList("Null", "Null", "Null")));
 
             for (int i = 0; i < PIPELINE_REGS.size(); i++) {
@@ -131,8 +129,8 @@ class lab4 {
                 }
             }    
 
+            /* script mode */
             if (args.length > 1) {
-                // script
                 File script = new File(args[1]);
                 FileReader sread = new FileReader(script);
                 BufferedReader sbread = new BufferedReader(sread);
