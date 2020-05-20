@@ -75,7 +75,7 @@ class lab4 {
     }};
 
     static int PC = 0;
-    static int CYCLES = 0;
+    static int CYCLES = 0; 
     static String[] PIPELINE = {"empty", "empty", "empty", "empty"};
     static ArrayList<ArrayList<String>> PIPELINE_REGS = new ArrayList<ArrayList<String>>();
     // PIPELINE_REGS.get(i).get(0) == PC
@@ -83,6 +83,7 @@ class lab4 {
     // PIPELINE_REGS.get(i).get(2) == RT
     
     public static void main(String args[]) {
+        
     
         Map<String, String> labels = new HashMap<String, String>();
         ArrayList<String> mCodes = new ArrayList<String>();
@@ -92,7 +93,7 @@ class lab4 {
         TwoPassAsm twoPass =  new TwoPassAsm();
         CPUfuncs cfuncs = new CPUfuncs();
 
-
+       // CYCLES++;
         try {
             File file = new File(args[0]);
             FileReader fread = new FileReader(file);
@@ -139,6 +140,7 @@ class lab4 {
                 Scanner command = new Scanner(System.in);
                 int ret = 0;
                 while (ret != -1) {
+             //       CYCLES++; // Cycle added regardless of what pc is doing      
                     System.out.print("mips> ");
                     String cmd = command.nextLine();
                     ret = command_output(cmd, data_mem, reg_file, funcs, mCodes); 
@@ -149,7 +151,7 @@ class lab4 {
                     }
                 }
             }
-            System.out.println("Cycles: " + CYCLES);
+          //  System.out.println("Cycles: " + CYCLES);
 
             
             } catch(IOException e) { 
@@ -200,10 +202,12 @@ class lab4 {
                         i--;
                     }
                     cfuncs.s(Integer.parseInt(splitLine[1]));
+                    cfuncs.p(PIPELINE, PC);
                     break;
                 } else {
                     parseMCode(mCodes, reg_file, data_mem, funcs);
                     cfuncs.s(1);
+                    cfuncs.p(PIPELINE, PC);
                     break;
                 }
             default:
@@ -219,6 +223,8 @@ class lab4 {
         CPUfuncs cfuncs = new CPUfuncs();
         try {     
         while ((line = sbread.readLine()) != null) {
+        
+       //     CYCLES++; // Cycle added regardless of what pc is doing      
             splitLine = line.split(" ");
              
             if (splitLine.length == 1) {
@@ -257,9 +263,11 @@ class lab4 {
                         parseMCode(mCodes, reg_file, data_mem, funcs);
                         i = PC;
                     }
+                    float CPI = ((float)CYCLES / PC);
                     System.out.println("\nProgram complete");
-                    System.out.print("CPI = " + (CYCLES/PC));
+                    System.out.print("CPI = " + String.format("%2.03f", CPI));
                     System.out.print("\tCycles = " + CYCLES);
+                    System.out.println("\tInstructions = " + PC + '\n');
                     System.out.println("\tInstructions = " + PC + '\n'); // prints when all lines of file execute
                     // BUG: For some reason only gets 40 cycles instead of 42 when running against first test case
 
@@ -276,6 +284,7 @@ class lab4 {
                         parseMCode(mCodes, reg_file, data_mem, funcs);
                         cfuncs.s(1);
                     }
+                    cfuncs.p(PIPELINE, PC);
                     break;
                 default:
                     return 0;
@@ -295,7 +304,7 @@ class lab4 {
             
             int ret = 0;  
             String stall = "stall";
-            System.out.println("Cycles: " + CYCLES + '\n' + PIPELINE_REGS);
+         //   System.out.println("Cycles: " + CYCLES + '\n' + PIPELINE_REGS);
             
             if ((PIPELINE[1].equals("lw")) && ((PIPELINE_REGS.get(CYCLES - 1).get(2).equals(PIPELINE_REGS.get(CYCLES).get(1))) ||
                                             (PIPELINE_REGS.get(CYCLES - 1).get(2).equals(PIPELINE_REGS.get(CYCLES).get(2))))) {
