@@ -108,6 +108,10 @@ class lab4 {
             for(int i = 0; i < mCodes.size(); i++){
                 System.out.print(mCodes.get(i) + "\n");
             }
+
+            /* run simulate cpu cycle here */
+
+
             /*
             if (args.length > 1) {
                 // script
