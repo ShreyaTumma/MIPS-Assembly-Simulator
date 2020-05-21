@@ -75,6 +75,7 @@ class lab4 {
 
     static int PC = 0;
     static int CYCLES = 0; 
+    static int CycleCount = 0;
     static String[] PIPELINE = {"empty", "empty", "empty", "empty"};
     static ArrayList<ArrayList<String>> PIPELINE_REGS = new ArrayList<ArrayList<String>>();
 
@@ -82,6 +83,7 @@ class lab4 {
     // PIPELINE_REGS.get(i).get(1) == RS
     // PIPELINE_REGS.get(i).get(2) == RT
     // PIPELINE_REGS.get(i).get(3) == RD
+    
     
     public static void main(String args[]) {
 
@@ -129,8 +131,7 @@ class lab4 {
                 }
             }    
 
-            /* script mode */
-            if (args.length > 1) {
+            if (args.length > 1) { /* script mode */
                 File script = new File(args[1]);
                 FileReader sread = new FileReader(script);
                 BufferedReader sbread = new BufferedReader(sread);
@@ -189,10 +190,14 @@ class lab4 {
                     i = PC;
                 }
 
-                float CPI = ((float)CYCLES / PC);
+                /* add 4 to finish the last instructions stages of the pipeline */
+                CycleCount = CycleCount + CYCLES + 4;
+                
+                float CPI = ((float)CycleCount/ PC);
                 System.out.println("\nProgram complete");
                 System.out.print("CPI = " + String.format("%2.03f", CPI));
-                System.out.print("\tCycles = " + CYCLES);
+                
+                System.out.print("\tCycles = " + CycleCount);
                 System.out.println("\tInstructions = " + PC + '\n');
                 return i;
 
@@ -308,12 +313,12 @@ class lab4 {
             
         int ret = 0;  
         String stall = "stall";
-    
+        /*
         ///System.out.println(" 1 Cycles: " + CYCLES + '\n' + PIPELINE_REGS);
             
         //  CYCLES++; // Cycle added regardless of what pc is doing      
         //if ((PIPELINE[1].equals("lw")) && ((PIPELINE_REGS.get(CYCLES - 1).get(2).equals(PIPELINE_REGS.get(CYCLES).get(1))) ||
-        //                               (PIPELINE_REGS.get(CYCLES - 1).get(2).equals(PIPELINE_REGS.get(CYCLES).get(2))))) {
+        //                               (PIPELINE_REGS.get(CYCLES - 1).get(2).equals(PIPELINE_REGS.get(CYCLES).get(2))))) {*/
              
         //handle error statements - check for all code
         if (mCodes.get(PC).contains(":") == false) {
@@ -333,17 +338,18 @@ class lab4 {
                 ret = jTypeFuncs(splitLine, funcs, reg_file);
             }
 
-            System.out.println("og TEMP: " + Arrays.toString(PIPELINE));
-            //System.out.println("PR: " + PIPELINE_REGS);
+            //System.out.println("og TEMP: " + Arrays.toString(PIPELINE));
+            
+            
             /* for (int i = 0; i < RevOpCodes.size() ; i++) {
                     if (RevOpCodes.get(i).equals(splitLine[0])) {
                         PIPELINE[0] = "hello";
                     }
-                }*/
+                }
             //  PIPELINE[0] = RevOpCodes.get(splitLine[0]);
             
             // Cycle added regardless of what pc is doing      
-            // System.out.println(" 2 Cycles: " + CYCLES + '\n' + PIPELINE_REGS);
+            // System.out.println(" 2 Cycles: " + CYCLES + '\n' + PIPELINE_REGS);*/
                 
             
             CYCLES++; 
@@ -355,24 +361,25 @@ class lab4 {
                 // PIPELINE_REGS.get(i).get(2) == RT
                 // PIPELINE_REGS.get(i).get(3) == RD
                 
-
-                if ((prevRegs.get(3).equals(PIPELINE_REGS.get(CYCLES).get(1))) ||
-                    (prevRegs.get(3).equals(PIPELINE_REGS.get(CYCLES).get(2)))) {
+            
+                if ((prevRegs.get(3).equals(PIPELINE_REGS.get(CYCLES).get(1)) && prevRegs.get(3).equals("0") == false) ||
+                    (prevRegs.get(3).equals(PIPELINE_REGS.get(CYCLES).get(2)) && prevRegs.get(3).equals("0") == false)){
 
 
                     PIPELINE[3] = PIPELINE[2]; // moving everything in pipeline to the right
                     PIPELINE[2] = PIPELINE[1]; 
-                    PIPELINE[1] = stall;  // puts a stall in the pipeline
+                    PIPELINE[1] = stall;      // puts a stall in the pipeline
                     
                     //PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList("Null", "Null", "Null", "Null"))); // null values for "stall" cycle - maybe change to hold PC
 
-                    System.out.println("stall TEMP: " + Arrays.toString(PIPELINE));
-
-                    CYCLES++;
+                    //System.out.println("stall TEMP: " + Arrays.toString(PIPELINE));
+                    
+                    /* updating CYCLES here leads to index out of bounds error in our chack above, so using new variable */
+                    CycleCount++;
 
                 }
             }
-            
+        
             PC = PC + ret;
         }    
  
