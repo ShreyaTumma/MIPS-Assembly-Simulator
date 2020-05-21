@@ -349,37 +349,33 @@ class lab4 {
             CYCLES++; 
             
             if(CYCLES > 1){
-            ArrayList<String> prevRegs = PIPELINE_REGS.get(CYCLES - 1);
-            // PIPELINE_REGS.get(i).get(0) == PC
-            // PIPELINE_REGS.get(i).get(1) == RS
-            // PIPELINE_REGS.get(i).get(2) == RT
-            // PIPELINE_REGS.get(i).get(3) == RD
-    
+                ArrayList<String> prevRegs = PIPELINE_REGS.get(CYCLES - 1);
+                // PIPELINE_REGS.get(i).get(0) == PC
+                // PIPELINE_REGS.get(i).get(1) == RS
+                // PIPELINE_REGS.get(i).get(2) == RT
+                // PIPELINE_REGS.get(i).get(3) == RD
+                
 
-            if ((prevRegs.get(3).equals(PIPELINE_REGS.get(CYCLES).get(1))) ||
-                (prevRegs.get(3).equals(PIPELINE_REGS.get(CYCLES).get(2)))) {
+                if ((prevRegs.get(3).equals(PIPELINE_REGS.get(CYCLES).get(1))) ||
+                    (prevRegs.get(3).equals(PIPELINE_REGS.get(CYCLES).get(2)))) {
 
 
-                PIPELINE[3] = PIPELINE[2]; // moving everything in pipeline to the right
-                PIPELINE[2] = PIPELINE[1]; 
-                PIPELINE[1] = stall;  // puts a stall in the pipeline
-                //PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList("Null", "Null", "Null", "Null"))); // null values for "stall" cycle - maybe change to hold PC
-
-                System.out.println("stall TEMP: " + Arrays.toString(PIPELINE));
-
-                //CYCLES++;
+                    PIPELINE[3] = PIPELINE[2]; // moving everything in pipeline to the right
+                    PIPELINE[2] = PIPELINE[1]; 
+                    PIPELINE[1] = stall;  // puts a stall in the pipeline
                     
-            }
-        }
+                    //PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList("Null", "Null", "Null", "Null"))); // null values for "stall" cycle - maybe change to hold PC
 
-          //  else {
-          //      PC = PC + ret;
-          //  }
-          //  } else {
+                    System.out.println("stall TEMP: " + Arrays.toString(PIPELINE));
+
+                    CYCLES++;
+
+                }
+            }
             
             PC = PC + ret;
         }    
-//            CYCLES++; // Cycle added regardless of what pc is doing      
+ 
     }
 
     // TODO - edit PIPELINE_REGS
