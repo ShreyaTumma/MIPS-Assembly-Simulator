@@ -5,7 +5,7 @@ import java.util.*;
 
 public class TwoPassAsm {
     
-    // method for first pass
+    /* method for first pass */
     public int getLabelAddresses(String line, int hexAddress, 
         Map<String, String> labels, Map<String, String> opCodes, ArrayList<ArrayList <String>> instructions) {
         
@@ -30,7 +30,7 @@ public class TwoPassAsm {
                 }
                 if(splitLine[i].length() > 0 ){
                     if (opCodes.containsKey(splitLine[i]) == true) {
-                        hexAddress += 1; //add hex address as a value to key (?)
+                        hexAddress += 1;
                     }
                     // check for labels and store address
                     int indexCol = splitLine[i].indexOf(":");
@@ -52,7 +52,7 @@ public class TwoPassAsm {
         return hexAddress;
     }
 
-    // method used for second pass
+    /* method used for second pass */
     public ArrayList<String> makeMachineCode(Map<String, String> labels,
         Map<String, String> opCodes, Map<String, String> functionCodes, 
         Map<String, String> regCodes,ArrayList<ArrayList <String>> instructions, ArrayList<String> mCodes) {
@@ -67,7 +67,7 @@ public class TwoPassAsm {
                 case 4:
                     if(opCodes.containsKey(current_inst) == true){
                         if(functionCodes.get(current_inst) == "immediate" || functionCodes.get(current_inst) == "offset" ) {
-                            mCode += iType(line, current_inst, labels, i, regCodes, opCodes, functionCodes);
+                            mCode += iType(line, current_inst, labels, i, regCodes, functionCodes, opCodes);
                         } else if(functionCodes.get(current_inst).contains("sa") == true) {
                             mCode += shift(line, current_inst, regCodes, opCodes);
                         } else {

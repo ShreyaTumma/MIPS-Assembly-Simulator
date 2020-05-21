@@ -25,6 +25,7 @@ class lab4 {
         put("jal", "000011"); 
     }};
 
+
     static Map<String, String> functionCodes = new HashMap<String, String>() {{
         put("and", "00000 100100");
         put("add", "00000 100000");
@@ -74,8 +75,15 @@ class lab4 {
     }};
 
     static int PC = 0;
+    static int CYCLES = 0; 
+    static String[] PIPELINE = {"empty", "empty", "empty", "empty"};
+    static ArrayList<ArrayList<String>> PIPELINE_REGS = new ArrayList<ArrayList<String>>();
+    // PIPELINE_REGS.get(i).get(0) == PC
+    // PIPELINE_REGS.get(i).get(1) == RS
+    // PIPELINE_REGS.get(i).get(2) == RT
     
     public static void main(String args[]) {
+        
     
         Map<String, String> labels = new HashMap<String, String>();
         ArrayList<String> mCodes = new ArrayList<String>();
@@ -83,8 +91,9 @@ class lab4 {
         int [] reg_file = new int [32];
         MIPSfuncs funcs = new MIPSfuncs();
         TwoPassAsm twoPass =  new TwoPassAsm();
+        CPUfuncs cfuncs = new CPUfuncs();
 
-
+       // CYCLES++;
         try {
             File file = new File(args[0]);
             FileReader fread = new FileReader(file);
@@ -101,11 +110,22 @@ class lab4 {
             }
             fread.close();
 
-            mCodes = twoPass.makeMachineCode(labels, functionCodes, opCodes, regCodes, instructions, mCodes);
-            for(int i = 0; i < mCodes.size(); i++){
+            mCodes = twoPass.makeMachineCode(labels, opCodes,  functionCodes, regCodes, instructions, mCodes);
+    /*        for(int i = 0; i < mCodes.size(); i++){
                 System.out.print(mCodes.get(i) + "\n");
             }
-            /*
+            for (int i = 0; i < PIPELINE.length; i++) {
+                System.out.println(PIPELINE[i]);
+            }*/
+            
+            PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList("Null", "Null", "Null")));
+
+            for (int i = 0; i < PIPELINE_REGS.size(); i++) {
+                for (int j = 0; j < PIPELINE_REGS.get(i).size() ; j++) {
+                    System.out.println(PIPELINE_REGS.get(i).get(j));
+                }
+            }    
+
             if (args.length > 1) {
                 // script
                 File script = new File(args[1]);
@@ -120,6 +140,7 @@ class lab4 {
                 Scanner command = new Scanner(System.in);
                 int ret = 0;
                 while (ret != -1) {
+             //       CYCLES++; // Cycle added regardless of what pc is doing      
                     System.out.print("mips> ");
                     String cmd = command.nextLine();
                     ret = command_output(cmd, data_mem, reg_file, funcs, mCodes); 
@@ -129,7 +150,8 @@ class lab4 {
                         PC = 0;
                     }
                 }
-            }*/
+            }
+          //  System.out.println("Cycles: " + CYCLES);
 
             
             } catch(IOException e) { 
@@ -142,19 +164,23 @@ class lab4 {
         String[] splitLine;            
         splitLine = cmd.split(" ");
         int i = 0;
+        CPUfuncs cfuncs = new CPUfuncs();
             
         switch(splitLine[0]) {
             case("h"):
-                h();
+                cfuncs.h();
                 break;
             case("d"):
-                d(reg_file);
+                cfuncs.d(reg_file, PC);
+                break;
+            case("p"):
+                cfuncs.p(PIPELINE, PC);
                 break;
             case("m"):
-                m(data_mem, Integer.parseInt(splitLine[1]), Integer.parseInt(splitLine[2]));
+                cfuncs.m(data_mem, Integer.parseInt(splitLine[1]), Integer.parseInt(splitLine[2]));
                 break;
             case("c"):
-                c();
+                cfuncs.c();
                 return -2;
             case("r"):
                 i = PC;
@@ -162,6 +188,11 @@ class lab4 {
                     parseMCode(mCodes, reg_file, data_mem, funcs);
                     i = PC;
                 }
+                float CPI = ((float)CYCLES / PC);
+                System.out.println("\nProgram complete");
+                System.out.print("CPI = " + String.format("%2.03f", CPI));
+                System.out.print("\tCycles = " + CYCLES);
+                System.out.println("\tInstructions = " + PC + '\n');
                 return i;
             case("s"):
                 if (splitLine.length > 1) {
@@ -170,11 +201,13 @@ class lab4 {
                         parseMCode(mCodes, reg_file, data_mem, funcs);
                         i--;
                     }
-                    s(Integer.parseInt(splitLine[1]));
+                    cfuncs.s(Integer.parseInt(splitLine[1]));
+                    cfuncs.p(PIPELINE, PC);
                     break;
                 } else {
                     parseMCode(mCodes, reg_file, data_mem, funcs);
-                    s(1);
+                    cfuncs.s(1);
+                    cfuncs.p(PIPELINE, PC);
                     break;
                 }
             default:
@@ -187,8 +220,11 @@ class lab4 {
         String line;
         String[] splitLine;  
         int i = 0; 
+        CPUfuncs cfuncs = new CPUfuncs();
         try {     
         while ((line = sbread.readLine()) != null) {
+        
+       //     CYCLES++; // Cycle added regardless of what pc is doing      
             splitLine = line.split(" ");
              
             if (splitLine.length == 1) {
@@ -204,19 +240,22 @@ class lab4 {
     
             switch(splitLine[0]) {
                 case("h"):
-                    h(); 
+                    cfuncs.h(); 
                     break;
                 case("d"):
-                    d(reg_file);
+                    cfuncs.d(reg_file, PC);
+                    break;
+                case("p"):
+                    cfuncs.p(PIPELINE, PC);
                     break;
                 case("m"):
-                    m(data_mem, Integer.parseInt(splitLine[1]), Integer.parseInt(splitLine[2]));
+                    cfuncs.m(data_mem, Integer.parseInt(splitLine[1]), Integer.parseInt(splitLine[2]));
                     break;
                 case("c"):
                     PC = 0;
                     Arrays.fill(data_mem, 0);
                     Arrays.fill(reg_file, 0);
-                    c();
+                    cfuncs.c();
                     break;
                 case("r"):
                     i = PC;
@@ -224,6 +263,14 @@ class lab4 {
                         parseMCode(mCodes, reg_file, data_mem, funcs);
                         i = PC;
                     }
+                    float CPI = ((float)CYCLES / PC);
+                    System.out.println("\nProgram complete");
+                    System.out.print("CPI = " + String.format("%2.03f", CPI));
+                    System.out.print("\tCycles = " + CYCLES);
+                    System.out.println("\tInstructions = " + PC + '\n');
+                    System.out.println("\tInstructions = " + PC + '\n'); // prints when all lines of file execute
+                    // BUG: For some reason only gets 40 cycles instead of 42 when running against first test case
+
                     break;
                 case("s"):
                     if (splitLine.length > 1) { // probably have to work with pc value returned 
@@ -232,11 +279,12 @@ class lab4 {
                             parseMCode(mCodes, reg_file, data_mem, funcs);
                             i--;
                         }
-                        s(Integer.parseInt(splitLine[1]));
+                        cfuncs.s(Integer.parseInt(splitLine[1]));
                     } else {
                         parseMCode(mCodes, reg_file, data_mem, funcs);
-                        s(1);
+                        cfuncs.s(1);
                     }
+                    cfuncs.p(PIPELINE, PC);
                     break;
                 default:
                     return 0;
@@ -252,10 +300,29 @@ class lab4 {
     
         public static void parseMCode(ArrayList<String> mCodes, int [] reg_file, int [] data_mem, MIPSfuncs funcs){
             
+            // The check from our notes translated to code
+            
             int ret = 0;  
+            String stall = "stall";
+         //   System.out.println("Cycles: " + CYCLES + '\n' + PIPELINE_REGS);
+            
+            if ((PIPELINE[1].equals("lw")) && ((PIPELINE_REGS.get(CYCLES - 1).get(2).equals(PIPELINE_REGS.get(CYCLES).get(1))) ||
+                                            (PIPELINE_REGS.get(CYCLES - 1).get(2).equals(PIPELINE_REGS.get(CYCLES).get(2))))) {
+                PIPELINE[3] = PIPELINE[2]; // moving everything in pipeline to the right
+                PIPELINE[2] = PIPELINE[1]; 
+                PIPELINE[1] = stall;  // puts a stall in the pipeline
+                PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList("Null", "Null", "Null"))); // null values for "stall" cycle
+ //               CYCLES++;
+                    
+            }
+             
             //handle error statements
-            if(mCodes.get(PC).contains(":") == false){
+            else if(mCodes.get(PC).contains(":") == false){
                 String[] splitLine = mCodes.get(PC).split(" ");
+                
+                PIPELINE[3] = PIPELINE[2]; // Moves everything in pipeline to the right
+                PIPELINE[2] = PIPELINE[1];
+                PIPELINE[1] = PIPELINE[0];
                 
                 if(splitLine[0].equals("000000")){
                     ret = rTypeFuncs(splitLine, funcs, reg_file);
@@ -264,8 +331,17 @@ class lab4 {
                 } else if(splitLine.length == 2){
                     ret = jTypeFuncs(splitLine, funcs, reg_file);
                 }
-            }        
-            PC = PC + ret;
+
+         /*       for (int i = 0; i < RevOpCodes.size() ; i++) {
+                    if (RevOpCodes.get(i).equals(splitLine[0])) {
+                        PIPELINE[0] = "hello";
+                    }
+                }*/
+//                PIPELINE[0] = RevOpCodes.get(splitLine[0]);
+            
+                PC = PC + ret;
+            } 
+            CYCLES++; // Cycle added regardless of what pc is doing      
         }
 
         private static int jTypeFuncs(String [] splitline, MIPSfuncs funcs, int [] reg_file) {
@@ -281,8 +357,12 @@ class lab4 {
             }
             switch(opCode){
                 case "000010":
+                    PIPELINE[0] = "j"; // adding command to pipeline
+                    PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), "Null", "Null"))); // statements like this for every block in each TypeFuncs method
                     return funcs.j(imm, PC);
                 case "000011":
+                    PIPELINE[0] = "jal";
+                    PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), "Null", "Null")));
                     return funcs.jal(reg_file,imm, PC);
                 default:
                     System.out.println("Error in jTypeFuncs"+ Arrays.toString(splitline));
@@ -309,20 +389,30 @@ class lab4 {
             switch(opCode){
                 
                 case "001000":
+                    PIPELINE[0] = "addi";
+                    PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                     funcs.addi(reg_file, rs, rt, imm);
                     break;
                 case "000100":
+                    PIPELINE[0] = "beq";
+                    PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                     return funcs.beq(reg_file, rs, rt, imm, PC);
                     
                     //break;
                 case "000101":
+                    PIPELINE[0] = "bne";
+                    PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                     return funcs.bne(reg_file, rs, rt, imm, PC);
                     
                     //break;
                 case "100011":
+                    PIPELINE[0] = "lw";
+                    PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                     funcs.lw(reg_file, data_mem, rs, rt, imm);
                     break;
                 case "101011":
+                    PIPELINE[0] = "sw";
+                    PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                     funcs.sw(reg_file, data_mem, rs, rt, imm);
                     break;
                 
@@ -352,21 +442,33 @@ class lab4 {
                 
                 switch(funcCode){
                     case "100100":
+                        PIPELINE[0] = "and";
+                        PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                         funcs.and(reg_file, rs, rt, rd);
                         break;
                     case "100000":
+                        PIPELINE[0] = "add";
+                        PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                         funcs.add(reg_file, rs, rt, rd);
                         break;
                     case "100101":
+                        PIPELINE[0] = "or";
+                        PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                         funcs.or(reg_file, rs, rt, rd);
                         break;
                     case "100010":
+                        PIPELINE[0] = "sub";
+                        PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                         funcs.sub(reg_file, rs, rt, rd);
                         break;
                     case "101010":
+                        PIPELINE[0] = "slt";
+                        PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                         funcs.slt(reg_file, rs, rt, rd);
                         break;
                     case "000000":
+                        PIPELINE[0] = "sll";
+                        PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                         int shamt = Integer.parseInt(splitline[4], 2);
                         funcs.sll(reg_file,rt, rd, shamt);
                         break;
@@ -398,67 +500,5 @@ class lab4 {
 
             return ((decimal + 1) * (-1));
         }
-
-
-        public static void h() {
-            System.out.println("\nh = show help");
-            System.out.println("d = dump register state");
-            System.out.println("s = single step through the program (i.e. execute 1 instruction and stop)");
-            System.out.println("s num = step through num instructions of the program");
-            System.out.println("r = run until the program ends");
-            System.out.println("m num1 num2 = display data memory from location num1 to num2");
-            System.out.println("c = clear all registers, memory, and the program counter to 0");
-            System.out.println("q = exit the program\n");
-        }
-
-        public static void d(int[] reg_file) {   
-            System.out.println("\npc = " + PC);
-            System.out.println("$0 = " + reg_file[0] + "\t\t" +
-                               "$v0 = " + reg_file[2] + "\t\t" +
-                                "$v1 = " + reg_file[3] + "\t\t" +
-                                "$a0 = " + reg_file[4] + "\t\t");
-            System.out.println("$a1 = " + reg_file[5] + "\t\t" +
-                               "$a2 = " + reg_file[6] + "\t\t" +
-                                "$a3 = " + reg_file[7] + "\t\t" +
-                                "$t0 = " + reg_file[8] + "\t\t");
-            System.out.println("$t1 = " + reg_file[9] + "\t\t" +
-                               "$t2 = " + reg_file[10] + "\t\t" +
-                                "$t3 = " + reg_file[11] + "\t\t" +
-                                "$t4 = " + reg_file[12] + "\t\t");
-            System.out.println("$t5 = " + reg_file[13] + "\t\t" +
-                               "$t6 = " + reg_file[14] + "\t\t" +
-                                "$t7 = " + reg_file[15] + "\t\t" +
-                                "$s0 = " + reg_file[16] + "\t\t");
-            System.out.println("$s1 = " + reg_file[17] + "\t\t" +
-                               "$s2 = " + reg_file[18] + "\t\t" +
-                                "$s3 = " + reg_file[19] + "\t\t" +
-                                "$s4 = " + reg_file[20] + "\t\t");
-            System.out.println("$s5 = " + reg_file[21] + "\t\t" +
-                               "$s6 = " + reg_file[22]+ "\t\t" +
-                                "$s7 = " + reg_file[23] + "\t\t" +
-                                "$t8 = " + reg_file[24] + "\t\t");
-            System.out.println("$t9 = " + reg_file[25] + "\t\t" +
-                               "$sp = " + reg_file[29] + "\t\t" +
-                                "$ra = " + reg_file[31] + "\t\t\n");
-        }        
-    
-        public static void m(int[] data_mem, int idx1, int idx2) {
-            System.out.print("\n");
-            for (int i = idx1; i <= idx2; i++) {
-                System.out.println("[" + i + "] = " + data_mem[i]);
-            }
-            System.out.print("\n");
-        }
-
-        public static void c() {
-            System.out.println("\tSimulator reset\n");
-        }
-
-
-
-        public static void s(int steps) { 
-            System.out.println("\t" + steps + " instruction(s) executed");
-        } 
-
 
 }  
