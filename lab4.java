@@ -308,7 +308,7 @@ class lab4 {
             int ret = 0;  
             String stall = "stall";
     
-     //       System.out.println(" 1 Cycles: " + CYCLES + '\n' + PIPELINE_REGS);
+     ///       System.out.println(" 1 Cycles: " + CYCLES + '\n' + PIPELINE_REGS);
             
           //  CYCLES++; // Cycle added regardless of what pc is doing      
 //            if ((PIPELINE[1].equals("lw")) && ((PIPELINE_REGS.get(CYCLES - 1).get(2).equals(PIPELINE_REGS.get(CYCLES).get(1))) ||
