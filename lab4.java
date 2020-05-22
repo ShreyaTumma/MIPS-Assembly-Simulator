@@ -76,14 +76,18 @@ class lab4 {
     static int PC = 0;
     static int CYCLES = 0; 
     static int CycleCount = 0;
-    static String[] PIPELINE = {"empty", "empty", "empty", "empty"};
+    static boolean nostall = true;
+    //static String[] PIPELINE = {"empty", "empty", "empty", "empty"};
+    static ArrayList<String> PIPELINE = new ArrayList<String>();
+    static ArrayList<String> STALL = new ArrayList<String>();
+    //static ArrayList<ArrayList<String>> to_print = new ArrayList<ArrayList<String>>();
     static ArrayList<ArrayList<String>> PIPELINE_REGS = new ArrayList<ArrayList<String>>();
 
     // PIPELINE_REGS.get(i).get(0) == PC
     // PIPELINE_REGS.get(i).get(1) == RS
     // PIPELINE_REGS.get(i).get(2) == RT
     // PIPELINE_REGS.get(i).get(3) == RD
-    
+
     
     public static void main(String args[]) {
 
@@ -93,7 +97,7 @@ class lab4 {
         int [] reg_file = new int [32];
         MIPSfuncs funcs = new MIPSfuncs();
         TwoPassAsm twoPass =  new TwoPassAsm();
-        CPUfuncs cfuncs = new CPUfuncs(); // being initialized in other functions, maybe pass in later 
+        //CPUfuncs cfuncs = new CPUfuncs(); // being initialized in other functions, maybe pass in later 
 
 
         try {
@@ -124,13 +128,23 @@ class lab4 {
             }*/
                         
             PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList("Null", "Null", "Null", "Null")));
+            PIPELINE.add("empty");
+            PIPELINE.add("empty");
+            PIPELINE.add("empty");
+            PIPELINE.add("empty");
 
+            STALL.add("empty");
+            STALL.add("empty");
+            STALL.add("empty");
+            STALL.add("empty");
+
+            /*
             for (int i = 0; i < PIPELINE_REGS.size(); i++) {
                 for (int j = 0; j < PIPELINE_REGS.get(i).size() ; j++) {
                     System.out.println(PIPELINE_REGS.get(i).get(j));
                 }
             }    
-
+            */
             if (args.length > 1) { /* script mode */
                 File script = new File(args[1]);
                 FileReader sread = new FileReader(script);
@@ -202,21 +216,44 @@ class lab4 {
                 return i;
 
             case("s"):
-                if (splitLine.length > 1) {
-                    i = Integer.parseInt(splitLine[1]);
-                    while (i > 0) {
-                        parseMCode(mCodes, reg_file, data_mem, funcs);
-                        i--;
-                    }
-                    cfuncs.s(Integer.parseInt(splitLine[1]));
-                    cfuncs.p(PIPELINE, PC);
-                    break;
-                } else {
-                    parseMCode(mCodes, reg_file, data_mem, funcs);
-                    cfuncs.s(1);
-                    cfuncs.p(PIPELINE, PC);
+                
+                if(nostall == false ){
+                    CPUfuncs.p(STALL, PC);
+                    PIPELINE.set(3, PIPELINE.get(2));
+                    PIPELINE.set(2, PIPELINE.get(1));
+                    PIPELINE.set(1, "stall");
+                    nostall = true;
                     break;
                 }
+                
+                if (splitLine.length > 1) {
+                    i = Integer.parseInt(splitLine[1]);
+                } else {
+                    i = 1;
+                }    
+                
+                while (i > 0  && (nostall == true)) {
+                    parseMCode(mCodes, reg_file, data_mem, funcs);
+                    i--;
+                }
+
+                CPUfuncs.p(PIPELINE, PC);
+
+
+
+
+                    //cfuncs.s(Integer.parseInt(splitLine[1]));
+                    
+                    //if (to_print.size() == 2){
+                        //nostall = false;
+                    //}
+                    //for (int j = 0; j < to_print.size(); j++){
+                        //cfuncs.p(to_print.get(j), PC);
+                    //}
+                    
+                    
+                break;
+                
             default:
                 return -1;
         }
@@ -313,21 +350,21 @@ class lab4 {
             
         int ret = 0;  
         String stall = "stall";
-        /*
-        ///System.out.println(" 1 Cycles: " + CYCLES + '\n' + PIPELINE_REGS);
-            
-        //  CYCLES++; // Cycle added regardless of what pc is doing      
-        //if ((PIPELINE[1].equals("lw")) && ((PIPELINE_REGS.get(CYCLES - 1).get(2).equals(PIPELINE_REGS.get(CYCLES).get(1))) ||
-        //                               (PIPELINE_REGS.get(CYCLES - 1).get(2).equals(PIPELINE_REGS.get(CYCLES).get(2))))) {*/
+
              
         //handle error statements - check for all code
         if (mCodes.get(PC).contains(":") == false) {
                 
             String[] splitLine = mCodes.get(PC).split(" ");
                 
-            PIPELINE[3] = PIPELINE[2]; // Moves everything in pipeline to the right
+            /*PIPELINE[3] = PIPELINE[2]; // Moves everything in pipeline to the right
             PIPELINE[2] = PIPELINE[1];
-            PIPELINE[1] = PIPELINE[0];
+            PIPELINE[1] = PIPELINE[0];*/
+            
+            PIPELINE.set(3, PIPELINE.get(2));
+            PIPELINE.set(2, PIPELINE.get(1));
+            PIPELINE.set(1, PIPELINE.get(0));
+            
             
             /* execute the instruction */
             if(splitLine[0].equals("000000")){
@@ -338,9 +375,10 @@ class lab4 {
                 ret = jTypeFuncs(splitLine, funcs, reg_file);
             }
 
-            //System.out.println("og TEMP: " + Arrays.toString(PIPELINE));
+            //System.out.println("og PL: " + PIPELINE);
             
-            
+            //to_print.add(PIPELINE);
+            //nostall = true;
             /* for (int i = 0; i < RevOpCodes.size() ; i++) {
                     if (RevOpCodes.get(i).equals(splitLine[0])) {
                         PIPELINE[0] = "hello";
@@ -361,18 +399,26 @@ class lab4 {
                 // PIPELINE_REGS.get(i).get(2) == RT
                 // PIPELINE_REGS.get(i).get(3) == RD
                 
-            
+
                 if ((prevRegs.get(3).equals(PIPELINE_REGS.get(CYCLES).get(1)) && prevRegs.get(3).equals("0") == false) ||
                     (prevRegs.get(3).equals(PIPELINE_REGS.get(CYCLES).get(2)) && prevRegs.get(3).equals("0") == false)){
 
-
+                    /*    
                     PIPELINE[3] = PIPELINE[2]; // moving everything in pipeline to the right
                     PIPELINE[2] = PIPELINE[1]; 
-                    PIPELINE[1] = stall;      // puts a stall in the pipeline
+                    PIPELINE[1] = stall;      // puts a stall in the pipeline*/
+                   
+                    STALL.set(3, PIPELINE.get(2));
+                    STALL.set(2, PIPELINE.get(1));
+                    STALL.set(1, stall);
                     
+                    STALL.set(0, PIPELINE.get(0));
+
+                    //to_print.add(STALL);
+                    nostall = false;
                     //PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList("Null", "Null", "Null", "Null"))); // null values for "stall" cycle - maybe change to hold PC
 
-                    //System.out.println("stall TEMP: " + Arrays.toString(PIPELINE));
+                    //System.out.println("st PL: " + PIPELINE);
                     
                     /* updating CYCLES here leads to index out of bounds error in our chack above, so using new variable */
                     CycleCount++;
@@ -382,6 +428,7 @@ class lab4 {
         
             PC = PC + ret;
         }    
+
  
     }
 
@@ -398,11 +445,13 @@ class lab4 {
         }
         switch(opCode){
             case "000010":
-                PIPELINE[0] = "j"; // adding command to pipeline
+                //PIPELINE[0] = "j"; // adding command to pipeline
+                PIPELINE.set(0, "j");
                 PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), "Null", "Null"))); // statements like this for every block in each TypeFuncs method
                 return funcs.j(imm, PC);
             case "000011":
-                PIPELINE[0] = "jal";
+                //PIPELINE[0] = "jal";
+                PIPELINE.set(0, "jal");
                 PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), "Null", "Null")));
                 return funcs.jal(reg_file,imm, PC);
             default:
@@ -429,30 +478,35 @@ class lab4 {
         switch(opCode){
             
             case "001000":
-                PIPELINE[0] = "addi";
+                //PIPELINE[0] = "addi";
+                PIPELINE.set(0, "addi");
                 PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), "Null", Integer.toString(rs), Integer.toString(rt))));
                 funcs.addi(reg_file, rs, rt, imm);
                 break;
             case "000100":
-                PIPELINE[0] = "beq";  //TODO
+                //PIPELINE[0] = "beq";  //TODO
+                PIPELINE.set(0, "beq");
                 PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                 return funcs.beq(reg_file, rs, rt, imm, PC);
                 
                 
             case "000101":
-                PIPELINE[0] = "bne"; //TODO
+                //PIPELINE[0] = "bne"; //TODO
+                PIPELINE.set(0, "bne");
                 PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                 return funcs.bne(reg_file, rs, rt, imm, PC);
                 
                 
             case "100011":
-                PIPELINE[0] = "lw";
+                //PIPELINE[0] = "lw";
+                PIPELINE.set(0, "lw");
                 PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), "Null", Integer.toString(rs), Integer.toString(rt))));
                 funcs.lw(reg_file, data_mem, rs, rt, imm);
                     break;
             case "101011":
-                PIPELINE[0] = "sw"; //TODO
-                PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
+                //PIPELINE[0] = "sw"; //need to check if written memory ?
+                PIPELINE.set(0, "sw");
+                PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt), "Null")));
                 funcs.sw(reg_file, data_mem, rs, rt, imm);
                 break;
             
@@ -478,32 +532,38 @@ class lab4 {
             
             switch(funcCode){
                 case "100100":
-                    PIPELINE[0] = "and";
+                    //PIPELINE[0] = "and";
+                    PIPELINE.set(0, "and");
                     PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt), Integer.toString(rd))));
                     funcs.and(reg_file, rs, rt, rd);
                     break;
                 case "100000":
-                    PIPELINE[0] = "add";
+                    //PIPELINE[0] = "add";
+                    PIPELINE.set(0, "add");
                     PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt), Integer.toString(rd))));
                     funcs.add(reg_file, rs, rt, rd);
                     break;
                 case "100101":
-                    PIPELINE[0] = "or";
+                    //PIPELINE[0] = "or";
+                    PIPELINE.set(0, "or");
                     PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt), Integer.toString(rd))));
                     funcs.or(reg_file, rs, rt, rd);
                     break;
                 case "100010":
-                    PIPELINE[0] = "sub";
+                    //PIPELINE[0] = "sub";
+                    PIPELINE.set(0, "sub");
                     PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt), Integer.toString(rd))));
                     funcs.sub(reg_file, rs, rt, rd);
                     break;
                 case "101010":
-                    PIPELINE[0] = "slt";
+                    //PIPELINE[0] = "slt";
+                    PIPELINE.set(0, "slt");
                     PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt), Integer.toString(rd))));
                     funcs.slt(reg_file, rs, rt, rd);
                     break;
                 case "000000":
-                    PIPELINE[0] = "sll";
+                    //PIPELINE[0] = "sll";
+                    PIPELINE.set(0, "sll");
                     PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt), Integer.toString(rd))));
                     int shamt = Integer.parseInt(splitline[4], 2);
                     funcs.sll(reg_file,rt, rd, shamt);

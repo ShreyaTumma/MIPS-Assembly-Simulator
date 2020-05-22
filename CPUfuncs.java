@@ -47,12 +47,12 @@ public class CPUfuncs {
                                 "$ra = " + reg_file[31] + "\t\t\n");
         }     
 
-        public static void p(String[] PIPELINE, int PC) {
+        public static void p(ArrayList<String> PIPELINE, int PC) {
             System.out.println("\npc\tif/id\tid/exe\texe/mem\tmem/wb");
             System.out.print(PC + "\t");
-            System.out.print(PIPELINE[0] + '\t');
-            System.out.print(PIPELINE[1] + '\t' + PIPELINE[2] + '\t');
-            System.out.println(PIPELINE[3] + '\n');
+            System.out.print(PIPELINE.get(0) + '\t');
+            System.out.print(PIPELINE.get(1) + '\t' + PIPELINE.get(2) + '\t');
+            System.out.println(PIPELINE.get(3) + '\n');
         }   
     
         public static void m(int[] data_mem, int idx1, int idx2) {
