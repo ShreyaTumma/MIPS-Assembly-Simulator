@@ -77,6 +77,10 @@ class lab4 {
     static int instructions = 0; 
     static int CycleCount = 0;
     static boolean nostall = true;
+    static boolean nojump = true;
+    static boolean nobranch = true;
+    
+    static int tempPC = 0;
     //static String[] PIPELINE = {"empty", "empty", "empty", "empty"};
     static ArrayList<String> PIPELINE = new ArrayList<String>();
     static ArrayList<String> STALL = new ArrayList<String>();
@@ -179,6 +183,7 @@ class lab4 {
         String[] splitLine;            
         splitLine = cmd.split(" ");
         int i = 0;
+        int branch = 3;
         CPUfuncs cfuncs = new CPUfuncs();
             
         switch(splitLine[0]) {
@@ -216,7 +221,36 @@ class lab4 {
                 return i;
 
             case("s"):
+                
                 int ogPC = 0;
+                if(nobranch == false) {
+                    if (branch == 1) {
+                        CycleCount++;
+                        PIPELINE.set(3, PIPELINE.get(2));
+                        PIPELINE.set(2, "squash");
+                        PIPELINE.set(1, "squash");
+                        PIPELINE.set(0, "squash");
+                        nobranch = true;
+                    } else {
+                  //      PIPELINE.set(3, PIPELINE.get(2));
+                   //     PIPELINE.set(2, PIPELINE.get(1));
+                   //     PIPELINE.set(1, PIPELINE.get(0));
+                   //     PIPELINE.set(0, mCodes.get(PC - branch));
+                        branch--;
+                    }   
+                //    CPUfuncs.p(PIPELINE, PC);
+                }
+    
+                if(nojump == false) {
+                    PIPELINE.set(3, PIPELINE.get(2));
+                    PIPELINE.set(2, PIPELINE.get(1));
+                    PIPELINE.set(1, PIPELINE.get(0));
+                    PIPELINE.set(0, "squash");
+                    CPUfuncs.p(PIPELINE, PC);
+                    nojump = true;
+                    break;
+                }
+                    
                 if(nostall == false ){
                     ogPC = Integer.parseInt(PIPELINE_REGS.get(instructions).get(0));
                     CPUfuncs.p(STALL, ogPC + 1);
@@ -372,7 +406,6 @@ class lab4 {
         // The check from our notes translated to code
             
         int ret = 0;  
-       
         //handle error statements - check for all code
         if (mCodes.get(PC).contains(":") == false) {
                 
@@ -389,14 +422,21 @@ class lab4 {
             } else if(splitLine.length == 4){
                 ret = iTypeFuncs(splitLine, funcs, reg_file, data_mem);
             } else if(splitLine.length == 2){
+                nojump = false;
                 ret = jTypeFuncs(splitLine, funcs, reg_file);
             }
 
             //System.out.println("og PL: " + PIPELINE);   
             // System.out.println(" 2 Cycles: " + CYCLES + '\n' + PIPELINE_REGS);*/
                 
-            
+            if (ret != 1 && nojump == true) {
+                nobranch = false;
+                tempPC = PC;
+            }
+
             instructions++; 
+            
+            tempPC = Integer.parseInt(PIPELINE_REGS.get(instructions).get(0));
             
             if(instructions > 1){
                 ArrayList<String> prevRegs = PIPELINE_REGS.get(instructions - 1);
@@ -406,8 +446,13 @@ class lab4 {
                 // PIPELINE_REGS.get(i).get(3) == RD
                 
 
-                if ((prevRegs.get(3).equals(PIPELINE_REGS.get(instructions).get(1)) && prevRegs.get(3).equals("0") == false) ||
-                    (prevRegs.get(3).equals(PIPELINE_REGS.get(instructions).get(2)) && prevRegs.get(3).equals("0") == false)){
+                
+                System.out.println("insts: " + instructions + '\n' + PIPELINE_REGS + '\n' + PIPELINE.get(0) + "\nPrev Regs: " + prevRegs);
+                if (!PIPELINE.get(1).equals("squash") && !PIPELINE.get(0).equals("beq")) {
+
+                    if ((PIPELINE.get(1).equals("lw") == true) && 
+                    ((prevRegs.get(3).equals(PIPELINE_REGS.get(instructions).get(1)) && prevRegs.get(3).equals("0") == false) ||
+                    (prevRegs.get(3).equals(PIPELINE_REGS.get(instructions).get(2)) && prevRegs.get(3).equals("0") == false))) {
                    
                     STALL.set(3, PIPELINE.get(2));
                     STALL.set(2, PIPELINE.get(1));
@@ -420,14 +465,16 @@ class lab4 {
                     //System.out.println("st PL: " + PIPELINE);
                     
                     CycleCount++;
-
+                    }   
                 }
             }
-        
+            if (nobranch == false) {
+                tempPC++;
+                PC = tempPC;
+            } else {
             PC = PC + ret;
+            }
         }    
-
- 
     }
 
     // TODO - edit PIPELINE_REGS
@@ -484,7 +531,7 @@ class lab4 {
             case "000100":
                 //PIPELINE[0] = "beq";  //TODO
                 PIPELINE.set(0, "beq");
-                PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
+                PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt), "Null")));
                 return funcs.beq(reg_file, rs, rt, imm, PC);
                 
                 
@@ -518,6 +565,7 @@ class lab4 {
     private static int rTypeFuncs(String [] splitline, MIPSfuncs funcs, int [] reg_file) {
             
         if(splitline.length == 4 && splitline[3].contains("001000")){
+            nojump = false;
             
             return funcs.jr(reg_file, Integer.parseInt(splitline[1], 2), PC); //TODO
         }
