@@ -309,29 +309,47 @@ class lab4 {
                         i = PC;
                     }
 
-                    float CPI = ((float)CYCLES / PC);
+                CycleCount = CycleCount + CYCLES + 4;
+                
+                float CPI = ((float)CycleCount/ PC);
+                System.out.println("\nProgram complete");
+                System.out.print("CPI = " + String.format("%2.03f", CPI));
+                
+                System.out.print("\tCycles = " + CycleCount);
+                System.out.println("\tInstructions = " + PC + '\n');
+                /*    float CPI = ((float)CYCLES / PC);
                     System.out.println("\nProgram complete");
                     System.out.print("CPI = " + String.format("%2.03f", CPI));
                     System.out.print("\tCycles = " + CYCLES);
                     System.out.println("\tInstructions = " + PC + '\n');
                     System.out.println("\tInstructions = " + PC + '\n'); // prints when all lines of file execute
                     // BUG: For some reason only gets 40 cycles instead of 42 when running against first test case
-
+*/
                     break;
                 case("s"):
-                    if (splitLine.length > 1) { // probably have to work with pc value returned 
-                        i = Integer.parseInt(splitLine[1]);
-                        while (i > 0) {
-                            parseMCode(mCodes, reg_file, data_mem, funcs);
-                            i--;
-                        }
-                        cfuncs.s(Integer.parseInt(splitLine[1]));
-                    } else {
-                        parseMCode(mCodes, reg_file, data_mem, funcs);
-                        cfuncs.s(1);
-                    }
-                    cfuncs.p(PIPELINE, PC);
+                if(nostall == false ){
+                    CPUfuncs.p(STALL, PC);
+                    PIPELINE.set(3, PIPELINE.get(2));
+                    PIPELINE.set(2, PIPELINE.get(1));
+                    PIPELINE.set(1, "stall");
+                    nostall = true;
                     break;
+                }
+                
+                if (splitLine.length > 1) {
+                    i = Integer.parseInt(splitLine[1]);
+                } else {
+                    i = 1;
+                }    
+                
+                while (i > 0  && (nostall == true)) {
+                    parseMCode(mCodes, reg_file, data_mem, funcs);
+                    i--;
+                }
+
+                CPUfuncs.p(PIPELINE, PC);
+                break;
+                
                 default:
                     return 0;
             }
