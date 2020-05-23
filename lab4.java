@@ -79,7 +79,8 @@ class lab4 {
     static boolean nostall = true;
     static boolean nojump = true;
     static boolean nobranch = true;
-    
+    static int branch = 3;
+    static int branch_squash = 0;
     static int tempPC = 0;
     //static String[] PIPELINE = {"empty", "empty", "empty", "empty"};
     static ArrayList<String> PIPELINE = new ArrayList<String>();
@@ -183,7 +184,6 @@ class lab4 {
         String[] splitLine;            
         splitLine = cmd.split(" ");
         int i = 0;
-        int branch = 3;
         CPUfuncs cfuncs = new CPUfuncs();
             
         switch(splitLine[0]) {
@@ -212,17 +212,18 @@ class lab4 {
                 /* add 4 to finish the last instructions stages of the pipeline */
                 CycleCount = CycleCount + instructions + 4;
                 
-                float CPI = ((float)CycleCount/ instructions);
+                float CPI = ((float)CycleCount/ (instructions - (2 * branch_squash)));
                 System.out.println("\nProgram complete");
                 System.out.print("CPI = " + String.format("%2.03f", CPI));
                 
                 System.out.print("\tCycles = " + CycleCount);
-                System.out.println("\tInstructions = " + instructions + '\n'); //CHANGE PC VALUE
+                System.out.println("\tInstructions = " + (instructions - (2 * branch_squash)) + '\n'); //CHANGE PC VALUE
                 return i;
 
             case("s"):
                 
                 int ogPC = 0;
+                System.out.println("nobranch: " + nobranch + "branch = " + branch);
                 if(nobranch == false) {
                     if (branch == 1) {
                         CycleCount++;
@@ -230,15 +231,28 @@ class lab4 {
                         PIPELINE.set(2, "squash");
                         PIPELINE.set(1, "squash");
                         PIPELINE.set(0, "squash");
-                        nobranch = true;
+        //                instructions--;
+                        branch--;
+                        PC++;
+                       // CycleCount -= 2;
+                        CPUfuncs.p(PIPELINE, tempPC + 1);
+                
                     } else {
                   //      PIPELINE.set(3, PIPELINE.get(2));
                    //     PIPELINE.set(2, PIPELINE.get(1));
                    //     PIPELINE.set(1, PIPELINE.get(0));
                    //     PIPELINE.set(0, mCodes.get(PC - branch));
+          //              instructions--;
                         branch--;
                     }   
                 //    CPUfuncs.p(PIPELINE, PC);
+                }
+                if (branch == 0 && nobranch == false) {
+                    CycleCount++;
+                    branch = 3;
+                    nobranch = true;
+                    branch_squash++;
+                    break;
                 }
     
                 if(nojump == false) {
@@ -266,15 +280,15 @@ class lab4 {
                 } else {
                     i = 1;
                 }    
+
                 
                 while (i > 0  && (nostall == true)) {
                     parseMCode(mCodes, reg_file, data_mem, funcs);
                     i--;
-                }
+                } 
                 
                 ogPC = Integer.parseInt(PIPELINE_REGS.get(instructions).get(0));
                 CPUfuncs.p(PIPELINE, ogPC + 1);
-
 
 
 
