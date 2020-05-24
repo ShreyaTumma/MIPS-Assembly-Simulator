@@ -3,7 +3,6 @@
 //Description: MIPS simulator
 
 import java.io.*;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 
@@ -84,8 +83,7 @@ class lab4 {
     static int squashCount = 0;
     static int branchSquashCount = 0;
     static int jSquashCount = 0;
-    
-    static boolean nojump = true;
+
     static boolean nobranch = true;
     
     static int savePC = 0;
@@ -217,16 +215,17 @@ class lab4 {
                     parseMCode(mCodes, reg_file, data_mem, funcs);
                     i = PC;
                 }
-
+                
+                
                 /* add 4 to finish the last instructions stages of the pipeline */
                 instructions = instructions - (3 * branchSquashCount) - jSquashCount;
                 CycleCount = CycleCount + instructions + 4;
-                
+         
                 float CPI = ((float)CycleCount/ instructions);
                 System.out.println("\nProgram complete");
                 System.out.print("CPI = " + String.format("%2.03f", CPI));
                 System.out.print("\tCycles = " + CycleCount);
-                //System.out.print("\tCycles = " + PIPELINE_REGS.size() + 4);
+                
                 System.out.println("\tInstructions = " + instructions + '\n');
                 return i;
 
@@ -380,19 +379,18 @@ class lab4 {
             } else if(splitLine.length == 4){
                 ret = iTypeFuncs(splitLine, funcs, reg_file, data_mem);
             } else if(splitLine.length == 2){
-                nojump = false;
                 ret = jTypeFuncs(splitLine, funcs, reg_file);
             }
 
-            //System.out.println("og PL: " + PIPELINE);   
-            // System.out.println(" 2 Cycles: " + CYCLES + '\n' + PIPELINE_REGS);*/
+           
             
             /* 3 cycle delay for conditional branches */
             if (PIPELINE.get(0).equals("beq") == true) {
 
                 // ret == 1 if not branch taken --> no squash
                 if(ret != 1 ){
-                    squashCount++;                 
+                    squashCount++;       
+                    //CycleCount++;         
                 }
 
             } 
@@ -405,17 +403,13 @@ class lab4 {
                 STALL.set(2, PIPELINE.get(2));
                 STALL.set(1, PIPELINE.get(1));
                 STALL.set(0, PIPELINE.get(0));
-
-                /*
-                if(PIPELINE.get(0).equals("jal") == true||PIPELINE.get(0).equals("jr") == true){
-                    CycleCount = CycleCount + 2;
-                }*/
-
+                //CycleCount++;
 
                // System.out.println("SAVEPC: " + savePC);
             } 
 
             instructions++; 
+            //CycleCount++;
             
             
             /* HAZARD CHECKING */
@@ -436,6 +430,7 @@ class lab4 {
                     PIPELINE.set(0, "squash");
                     squashCount = 0;
                     branchSquashCount++;
+                    //CycleCount++;
                 }
                 else if( squashCount == -1){
                     
@@ -452,7 +447,7 @@ class lab4 {
                     
                 }              
                 //System.out.println("insts: " + instructions + '\n' + PIPELINE_REGS + '\n' + PIPELINE.get(0) + "\nPrev Regs: " + prevRegs);
-                
+                 
                 /* use - after - load */
                 if (PIPELINE.get(1).equals("lw") == true ){
 
@@ -474,27 +469,31 @@ class lab4 {
             if (squashCount > 0 || squashCount < 0) {
             
                 PC = 1 + PC;
-                if(squashCount >= 1 || squashCount < 0){
+                if(squashCount >= 1){
                     STALL.set(3, PIPELINE.get(3));
                     STALL.set(2, PIPELINE.get(2));
                     STALL.set(1, PIPELINE.get(1));
                     STALL.set(0, PIPELINE.get(0));
                     squashCount++;
-                    //CycleCount++;
+                    CycleCount++;
 
                 }
-                CycleCount++;
+                else if(squashCount < 0){
+                    squashCount++;
+                    CycleCount++;
+                }
+                //CycleCount++;
             
             } else if (savePC  == 0 && nosquash == true ) {
-                PC = PC + ret;
-                CycleCount++;
-
-            
+                PC = PC + ret;           
             }
             else if(savePC  == 0 && nosquash == false ){
                 PC = PC + 1;
                 nosquash = true;
                 
+            }
+            else if (savePC != 0){
+                CycleCount++;
             }
 
             /*System.out.println("PC END OF PARSEMCODE : " + PC);
@@ -595,7 +594,7 @@ class lab4 {
     private static int rTypeFuncs(String [] splitline, MIPSfuncs funcs, int [] reg_file) {
             
         if(splitline.length == 4 && splitline[3].contains("001000")){
-            nojump = false;
+           
             PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), "Null", "Null")));
             return funcs.jr(reg_file, Integer.parseInt(splitline[1], 2), PC); 
         }
