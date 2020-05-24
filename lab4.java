@@ -592,7 +592,6 @@ class lab4 {
             
             switch(funcCode){
                 case "100100":
-                    //PIPELINE[0] = "and";
                     PIPELINE.set(0, "and");
                     PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt), Integer.toString(rd))));
                     funcs.and(reg_file, rs, rt, rd);
