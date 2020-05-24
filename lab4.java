@@ -82,8 +82,8 @@ class lab4 {
     static boolean nosquash = true;
 
     static int squashCount = 0;
-    static int branchSquash = 0;
-    static int jSquash = 0;
+    static int branchSquashCount = 0;
+    static int jSquashCount = 0;
     
     static boolean nojump = true;
     static boolean nobranch = true;
@@ -219,13 +219,14 @@ class lab4 {
                 }
 
                 /* add 4 to finish the last instructions stages of the pipeline */
-                //instructions = instructions - (3 * branchSquash) -;
+                instructions = instructions - (3 * branchSquashCount) - jSquashCount;
                 CycleCount = CycleCount + instructions + 4;
                 
                 float CPI = ((float)CycleCount/ instructions);
                 System.out.println("\nProgram complete");
                 System.out.print("CPI = " + String.format("%2.03f", CPI));
                 System.out.print("\tCycles = " + CycleCount);
+                //System.out.print("\tCycles = " + PIPELINE_REGS.size() + 4);
                 System.out.println("\tInstructions = " + instructions + '\n');
                 return i;
 
@@ -363,12 +364,6 @@ class lab4 {
     public static void parseMCode(ArrayList<String> mCodes, int [] reg_file, int [] data_mem, MIPSfuncs funcs){
             
         int ret = 0;  
-        System.out.println("PC BEG OF PARSEMCODE : " + PC);
-        
-        System.out.println("SAVEPC val: " + savePC);
-
-        
-
         
         /* error check with asm file input */
         if (mCodes.get(PC).contains(":") == false) {
@@ -389,7 +384,6 @@ class lab4 {
                 ret = jTypeFuncs(splitLine, funcs, reg_file);
             }
 
-            System.out.println("RET VAL AFTER EXECUTION : " + ret);
             //System.out.println("og PL: " + PIPELINE);   
             // System.out.println(" 2 Cycles: " + CYCLES + '\n' + PIPELINE_REGS);*/
             
@@ -398,8 +392,7 @@ class lab4 {
 
                 // ret == 1 if not branch taken --> no squash
                 if(ret != 1 ){
-                    squashCount++;
-                    CycleCount++;                    
+                    squashCount++;                 
                 }
 
             } 
@@ -413,13 +406,17 @@ class lab4 {
                 STALL.set(1, PIPELINE.get(1));
                 STALL.set(0, PIPELINE.get(0));
 
+                /*
+                if(PIPELINE.get(0).equals("jal") == true||PIPELINE.get(0).equals("jr") == true){
+                    CycleCount = CycleCount + 2;
+                }*/
 
-                //PIPELINE_REGS.add({savePC})
-                System.out.println("SAVEPC: " + savePC);
+
+               // System.out.println("SAVEPC: " + savePC);
             } 
 
             instructions++; 
-            //CycleCount++;
+            
             
             /* HAZARD CHECKING */
             if(instructions > 1){
@@ -432,13 +429,13 @@ class lab4 {
                 
                 
                 if(squashCount > 3){
-                    CycleCount++;
+                    
                     PIPELINE.set(3, STALL.get(2));
                     PIPELINE.set(2, "squash");
                     PIPELINE.set(1, "squash");
                     PIPELINE.set(0, "squash");
                     squashCount = 0;
-                    branchSquash++;
+                    branchSquashCount++;
                 }
                 else if( squashCount == -1){
                     
@@ -446,11 +443,12 @@ class lab4 {
                     PIPELINE.set(2, STALL.get(1));
                     PIPELINE.set(1, STALL.get(0));
                     PIPELINE.set(0, "squash");
-                    
+                    //CycleCount++;
                     squashCount =0;
                     PC = savePC;
                     savePC = 0;
                     nosquash = false;
+                    jSquashCount++;
                     
                 }              
                 //System.out.println("insts: " + instructions + '\n' + PIPELINE_REGS + '\n' + PIPELINE.get(0) + "\nPrev Regs: " + prevRegs);
@@ -466,10 +464,7 @@ class lab4 {
                         STALL.set(1, "stall");
                         STALL.set(0, PIPELINE.get(0));
 
-                        nostall = false;
-                   
-                        //System.out.println("st PL: " + PIPELINE);
-                    
+                        nostall = false;                    
                         CycleCount++;
                     }
                 }
@@ -485,27 +480,31 @@ class lab4 {
                     STALL.set(1, PIPELINE.get(1));
                     STALL.set(0, PIPELINE.get(0));
                     squashCount++;
-                    CycleCount++;
+                    //CycleCount++;
 
                 }
+                CycleCount++;
             
             } else if (savePC  == 0 && nosquash == true ) {
                 PC = PC + ret;
+                CycleCount++;
 
             
             }
             else if(savePC  == 0 && nosquash == false ){
                 PC = PC + 1;
                 nosquash = true;
+                
             }
 
-            System.out.println("PC END OF PARSEMCODE : " + PC);
+            /*System.out.println("PC END OF PARSEMCODE : " + PC);
             System.out.println("SQUASHCOUNT: " +squashCount);
 
             System.out.println("-------------------------");
             System.out.println(" pipeline reg : "+ PIPELINE_REGS);
             System.out.println("-------------------------");
-            System.out.println("nosqaush : " + nosquash);
+            System.out.println("nosqaush : " + nosquash);*/
+            //System.out.println(" Cycles: " +CycleCount + '\n' + PIPELINE_REGS);
         }    
     }
 
@@ -513,8 +512,7 @@ class lab4 {
     private static int jTypeFuncs(String [] splitline, MIPSfuncs funcs, int [] reg_file) { 
         String opCode = splitline[0];
         int imm = 0;
-        //int tempPC = 0;
-        
+                
         if(splitline[1].charAt(0) == '1'){
             imm = convert_args(splitline[3]);
         } 
@@ -525,16 +523,10 @@ class lab4 {
             case "000010":
                 
                 PIPELINE.set(0, "j");
-                /*if(savePC == 0){
-                    tempPC = PC;
-                }
-                else{
-                    tempPC = savePC;
-                }*/
                 PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), "Null", "Null"))); // statements like this for every block in each TypeFuncs method
                 return funcs.j(imm, PC);
             case "000011":
-                //PIPELINE[0] = "jal";
+
                 PIPELINE.set(0, "jal");
                 PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), "Null", "Null")));
                 return funcs.jal(reg_file,imm, PC);
@@ -548,7 +540,6 @@ class lab4 {
 
     private static int iTypeFuncs(String [] splitline, MIPSfuncs funcs, int [] reg_file, int [] data_mem) {
         String opCode = splitline[0];
-    
         int rs = Integer.parseInt(splitline[1], 2);
         int rt = Integer.parseInt(splitline[2], 2);
         int imm = 0;
@@ -562,27 +553,27 @@ class lab4 {
         switch(opCode){
             
             case "001000":
-                //PIPELINE[0] = "addi";
+
                 PIPELINE.set(0, "addi");
                 PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), "Null", Integer.toString(rs), Integer.toString(rt))));
                 funcs.addi(reg_file, rs, rt, imm);
                 break;
             case "000100":
-                //PIPELINE[0] = "beq";  //TODO
+                
                 PIPELINE.set(0, "beq");
                 PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt), "Null")));
                 return funcs.beq(reg_file, rs, rt, imm, PC);
                 
                 
             case "000101":
-                //PIPELINE[0] = "bne"; //TODO
+                
                 PIPELINE.set(0, "bne");
                 PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt))));
                 return funcs.bne(reg_file, rs, rt, imm, PC);
                 
                 
             case "100011":
-                //PIPELINE[0] = "lw";
+                
                 PIPELINE.set(0, "lw");
                 PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), "Null", Integer.toString(rs), Integer.toString(rt))));
                 funcs.lw(reg_file, data_mem, rs, rt, imm);
@@ -605,8 +596,8 @@ class lab4 {
             
         if(splitline.length == 4 && splitline[3].contains("001000")){
             nojump = false;
-            
-            return funcs.jr(reg_file, Integer.parseInt(splitline[1], 2), PC); //TODO
+            PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), "Null", "Null")));
+            return funcs.jr(reg_file, Integer.parseInt(splitline[1], 2), PC); 
         }
         else {
             String funcCode = splitline[5];
@@ -617,37 +608,37 @@ class lab4 {
             
             switch(funcCode){
                 case "100100":
-                    //PIPELINE[0] = "and";
+                    
                     PIPELINE.set(0, "and");
                     PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt), Integer.toString(rd))));
                     funcs.and(reg_file, rs, rt, rd);
                     break;
                 case "100000":
-                    //PIPELINE[0] = "add";
+                    
                     PIPELINE.set(0, "add");
                     PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt), Integer.toString(rd))));
                     funcs.add(reg_file, rs, rt, rd);
                     break;
                 case "100101":
-                    //PIPELINE[0] = "or";
+                    
                     PIPELINE.set(0, "or");
                     PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt), Integer.toString(rd))));
                     funcs.or(reg_file, rs, rt, rd);
                     break;
                 case "100010":
-                    //PIPELINE[0] = "sub";
+                    
                     PIPELINE.set(0, "sub");
                     PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt), Integer.toString(rd))));
                     funcs.sub(reg_file, rs, rt, rd);
                     break;
                 case "101010":
-                    //PIPELINE[0] = "slt";
+                    
                     PIPELINE.set(0, "slt");
                     PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt), Integer.toString(rd))));
                     funcs.slt(reg_file, rs, rt, rd);
                     break;
                 case "000000":
-                    //PIPELINE[0] = "sll";
+                    
                     PIPELINE.set(0, "sll");
                     PIPELINE_REGS.add(new ArrayList<String>(Arrays.asList(Integer.toString(PC), Integer.toString(rs), Integer.toString(rt), Integer.toString(rd))));
                     int shamt = Integer.parseInt(splitline[4], 2);
