@@ -73,8 +73,5 @@ public class CPUfuncs {
         public static void s(int steps) { 
             //System.out.println("\t" + steps + " instruction(s) executed");
         }
-    
-        
-
- 
+         
 }
