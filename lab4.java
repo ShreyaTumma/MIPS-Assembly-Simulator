@@ -382,10 +382,10 @@ class lab4 {
                 ret = jTypeFuncs(splitLine, funcs, reg_file);
             }
 
-           
+           //TODO: FIX BNE INSTRUCTION
             
             /* 3 cycle delay for conditional branches */
-            if (PIPELINE.get(0).equals("beq") == true) {
+            if (PIPELINE.get(0).equals("beq") == true || PIPELINE.get(0).equals("bne") == true ) {
 
                 // ret == 1 if not branch taken --> no squash
                 if(ret != 1 ){
